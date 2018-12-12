@@ -105,6 +105,8 @@ func getGitStatus() string {
 		result = "="
 	} else if strings.Contains(output_str, "Your branch is ahead of") {
 		result = "+"
+	} else if strings.Contains(output_str, "Changes to be committed") {
+		result = "+="
 	}
 	return result
 }
