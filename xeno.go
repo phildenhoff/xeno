@@ -61,21 +61,55 @@ func execInput(input string, doneChannel chan int, id int) error {
 
 	// Pass the arguments, split on space
 	args := strings.Split(input, " ")
+	var processedArgs []string
+
+	var quoteStack []string
+	var inQuote = false
+	var quoteStartIndex int
+
+	if !strings.Contains(input, "\"") {
+		processedArgs = args
+	} else {
+		// Compress args that have double quotes
+		for i := range args {
+			if strings.Contains(args[i], "\"") && !inQuote {
+				// Starting quote; start the stack
+				quoteStack = append(quoteStack, args[i])
+				// Locate this position to remove all items between this and the end later
+				quoteStartIndex = i
+				inQuote = true
+			} else if strings.Contains(args[i], "\"") && inQuote {
+				// Ending quote; pop all items from the stack and combine into one
+				var quoteStr = quoteStack[0]
+				for k := 1; k < len(quoteStack); k++ {
+					quoteStr += " " + quoteStack[k]
+				}
+				inQuote = false
+
+				// Remove quoted items from args
+				processedArgs = append(args[:quoteStartIndex], quoteStr)
+				processedArgs = append(processedArgs, args[i + 1:]...)
+			} else if inQuote {
+				// An item in quote
+				quoteStack = append(quoteStack, args[i])
+			}
+		}
+	}
 
 	// Check for built-in commands.
-	switch args[0] {
+	switch processedArgs[0] {
 	case "cd":
 		// 'cd' to home dir with empty path not yet supported.
-		if len(args) < 2 {
+		if len(processedArgs) < 2 {
 			return errors.New("path required")
 		}
 		// Change the directory and return the error.
-		return os.Chdir(args[1])
+		return os.Chdir(processedArgs[1])
 	case "exit":
 		os.Exit(0)
 	default:
 		// Prepare the command to execute
-		cmd := exec.Command(args[0], args[1:]...)
+		cmd := exec.Command(processedArgs[0], processedArgs[1:]...)
 		// Set the correct output devices
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -104,9 +138,12 @@ func getGitStatus() string {
 	} else if strings.Contains(output_str, "working directory clean") {
 		result = "="
 	} else if strings.Contains(output_str, "Your branch is ahead of") {
-		result = "+"
+		result = "++"
 	} else if strings.Contains(output_str, "Changes to be committed") {
-		result = "+="
+		result = "+"
+	}
+	if strings.Contains(output_str, "untracked files") {
+		result += "o"
 	}
 	return result
 }
