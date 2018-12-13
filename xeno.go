@@ -55,46 +55,48 @@ func replaceEnvVars(input string) string {
 	return input
 }
 
-func execInput(input string, doneChannel chan int, id int) error {
+func execInput(fullCmd string, doneChannel chan int, id int) error {
 	// Remove the newline
-	input = strings.TrimSuffix(input, "\n")
+	fullCmd = strings.TrimSuffix(fullCmd, "\n")
 
 	// Pass the arguments, split on space
-	args := strings.Split(input, " ")
+	//args := strings.Split(fullCmd, " ")
+	args := sanitiseArguments(fullCmd)
 	var processedArgs []string
+	processedArgs = args
 
-	var quoteStack []string
-	var inQuote = false
-	var quoteStartIndex int
-
-	if !strings.Contains(input, "\"") {
-		processedArgs = args
-	} else {
-		// Compress args that have double quotes
-		for i := range args {
-			if strings.Contains(args[i], "\"") && !inQuote {
-				// Starting quote; start the stack
-				quoteStack = append(quoteStack, args[i])
-				// Locate this position to remove all items between this and the end later
-				quoteStartIndex = i
-				inQuote = true
-			} else if strings.Contains(args[i], "\"") && inQuote {
-				// Ending quote; pop all items from the stack and combine into one
-				var quoteStr = quoteStack[0]
-				for k := 1; k < len(quoteStack); k++ {
-					quoteStr += " " + quoteStack[k]
-				}
-				inQuote = false
-
-				// Remove quoted items from args
-				processedArgs = append(args[:quoteStartIndex], quoteStr)
-				processedArgs = append(processedArgs, args[i + 1:]...)
-			} else if inQuote {
-				// An item in quote
-				quoteStack = append(quoteStack, args[i])
-			}
-		}
-	}
+	//var quoteStack []string
+	//var inQuote = false
+	//var quoteStartIndex int
+	//
+	//if !strings.Contains(fullCmd, "\"") {
+	//	processedArgs = args
+	//} else {
+	//	// Compress args that have double quotes
+	//	for i := range args {
+	//		if strings.Contains(args[i], "\"") && !inQuote {
+	//			// Starting quote; start the stack
+	//			quoteStack = append(quoteStack, args[i])
+	//			// Locate this position to remove all items between this and the end later
+	//			quoteStartIndex = i
+	//			inQuote = true
+	//		} else if strings.Contains(args[i], "\"") && inQuote {
+	//			// Ending quote; pop all items from the stack and combine into one
+	//			var quoteStr = quoteStack[0]
+	//			for k := 1; k < len(quoteStack); k++ {
+	//				quoteStr += " " + quoteStack[k]
+	//			}
+	//			inQuote = false
+	//
+	//			// Remove quoted items from args
+	//			processedArgs = append(args[:quoteStartIndex], quoteStr)
+	//			processedArgs = append(processedArgs, args[i + 1:]...)
+	//		} else if inQuote {
+	//			// An item in quote
+	//			quoteStack = append(quoteStack, args[i])
+	//		}
+	//	}
+	//}
 
 	// Check for built-in commands.
 	switch processedArgs[0] {
@@ -156,7 +158,7 @@ func printPrompt() {
 
 	gs := getGitStatus()
 
-	fmt.Print("SSI: ", cwd + " " + gs, "\n > ")
+	fmt.Print("𝐗", cwd + " " + gs, "\n > ")
 
 	return
 }
@@ -173,7 +175,7 @@ func main() {
 			for i := range backgroundJobs {
 				if backgroundJobs[i].id == id {
 					cmd := strings.TrimSuffix(backgroundJobs[i].invocationCommand, "\n")
-					fmt.Println(id, ": "+cmd+" has termintated.")
+					fmt.Println(id, ": "+cmd+" has terminated.")
 					// Found!
 				}
 			}
