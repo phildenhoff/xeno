@@ -165,7 +165,6 @@ func printPrompt() {
 
 func main() {
 	maxProcs := 2048
-	reader := bufio.NewReader(os.Stdin)
 	completedBackgroundJobs := make(chan int)
 	backgroundJobs := make([]bgProcess, maxProcs)
 
@@ -185,9 +184,20 @@ func main() {
 		printPrompt()
 
 		// Read the input
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		scanner := bufio.NewScanner(os.Stdin)
+		var input string
+		for scanner.Scan() {
+			char := scanner.Text()
+			// ignore EOF characters
+			if char == string(26) {
+				break
+			}
+			input = input + string(char)
+			break
+		}
+
+		if len(input) == 0 {
+			continue
 		}
 
 		// Sanitise input
@@ -206,8 +216,11 @@ func main() {
 		}
 
 		// Handle the execution of the input.
-		if err = execInput(input, nil, 0); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		if err := execInput(input, nil, 0); err != nil {
+			_, pErr := fmt.Fprintln(os.Stderr, err)
+			if pErr != nil {
+				os.Exit(1)
+			}
 		}
 	}
 }
